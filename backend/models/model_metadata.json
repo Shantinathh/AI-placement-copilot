@@ -1,0 +1,103 @@
+{
+  "categorical_cols": [
+    "gender",
+    "branch",
+    "college_tier",
+    "volunteer_experience"
+  ],
+  "numerical_cols": [
+    "age",
+    "cgpa",
+    "internships_count",
+    "projects_count",
+    "certifications_count",
+    "aptitude_score",
+    "communication_skill_score",
+    "hackathons_participated",
+    "github_repos",
+    "linkedin_connections",
+    "backlogs",
+    "extracurricular_score",
+    "leadership_score",
+    "sleep_hours",
+    "study_hours_per_day"
+  ],
+  "transformed_feature_names": [
+    "gender_Female",
+    "gender_Male",
+    "branch_CSE",
+    "branch_Civil",
+    "branch_ECE",
+    "branch_EEE",
+    "branch_IT",
+    "branch_Mechanical",
+    "college_tier_Tier 1",
+    "college_tier_Tier 2",
+    "college_tier_Tier 3",
+    "volunteer_experience_No",
+    "volunteer_experience_Yes",
+    "age",
+    "cgpa",
+    "internships_count",
+    "projects_count",
+    "certifications_count",
+    "aptitude_score",
+    "communication_skill_score",
+    "hackathons_participated",
+    "github_repos",
+    "linkedin_connections",
+    "backlogs",
+    "extracurricular_score",
+    "leadership_score",
+    "sleep_hours",
+    "study_hours_per_day"
+  ],
+  "metrics": {
+    "accuracy": 0.55725,
+    "precision": 0.5647365410284116,
+    "recall": 0.8157363202350348,
+    "f1_score": 0.6674178403755868,
+    "confusion_matrix": [
+      [
+        2260,
+        6848
+      ],
+      [
+        2007,
+        8885
+      ]
+    ],
+    "rmse_lpa": 1.2508969080446606,
+    "r2_lpa": 0.3823261097004296
+  },
+  "feature_importances": {
+    "gender_Female": 0.008700405246648672,
+    "gender_Male": 0.00857056303702093,
+    "branch_CSE": 0.009046834463649747,
+    "branch_Civil": 0.0064929731751834615,
+    "branch_ECE": 0.007526067162806634,
+    "branch_EEE": 0.006878337468528478,
+    "branch_IT": 0.008307761204444424,
+    "branch_Mechanical": 0.006956935875138547,
+    "college_tier_Tier 1": 0.008312297118511176,
+    "college_tier_Tier 2": 0.009240911984261345,
+    "college_tier_Tier 3": 0.009289524448906836,
+    "volunteer_experience_No": 0.008904081291643065,
+    "volunteer_experience_Yes": 0.008658301256978269,
+    "age": 0.035015439474921944,
+    "cgpa": 0.08234907337568843,
+    "internships_count": 0.031047398182143665,
+    "projects_count": 0.03890940024171188,
+    "certifications_count": 0.03325175275384296,
+    "aptitude_score": 0.08964707404587506,
+    "communication_skill_score": 0.08889324037938294,
+    "hackathons_participated": 0.025879182927161556,
+    "github_repos": 0.042240708600015324,
+    "linkedin_connections": 0.08351932330631577,
+    "backlogs": 0.028906510532163282,
+    "extracurricular_score": 0.08635158116784389,
+    "leadership_score": 0.0861917880576355,
+    "sleep_hours": 0.06987104524465533,
+    "study_hours_per_day": 0.07104148797692073
+  }
+}
