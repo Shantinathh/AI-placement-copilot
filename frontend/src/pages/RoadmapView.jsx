@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../services/api';
 
 export const RoadmapView = ({ readinessScore, branch, skillGaps = [], profile, resumeAnalysis }) => {
@@ -8,6 +8,7 @@ export const RoadmapView = ({ readinessScore, branch, skillGaps = [], profile, r
   const [completedTasks, setCompletedTasks] = useState({});
   const [errorMsg, setErrorMsg] = useState('');
   const [effectiveGaps, setEffectiveGaps] = useState([]);
+  const effectiveGapsRef = useRef([]);
 
   // Compute effective gaps from props if none passed explicitly
   useEffect(() => {
@@ -32,16 +33,23 @@ export const RoadmapView = ({ readinessScore, branch, skillGaps = [], profile, r
     }
 
     setEffectiveGaps(list);
+    effectiveGapsRef.current = list;
   }, [JSON.stringify(skillGaps), profile, resumeAnalysis]);
 
-  const loadRoadmap = async (forceRegen = false) => {
-    if (forceRegen) setRegenerating(true);
-    else setLoading(true);
+  const loadRoadmap = useCallback(async (forceRegen = false) => {
+    // Always read from the ref to avoid stale closure
+    const gaps = effectiveGapsRef.current;
+    if (forceRegen) {
+      setRegenerating(true);
+      setLoading(true); // show loading overlay during regen too
+    } else {
+      setLoading(true);
+    }
     setErrorMsg('');
 
     try {
       const [res, progressRes] = await Promise.all([
-        api.generateRoadmap(readinessScore || 75.0, effectiveGaps, branch || "CSE", forceRegen),
+        api.generateRoadmap(readinessScore || 75.0, gaps, branch || 'CSE', forceRegen),
         api.getRoadmapProgress()
       ]);
       setWeeks(res.weeks || []);
@@ -49,12 +57,12 @@ export const RoadmapView = ({ readinessScore, branch, skillGaps = [], profile, r
         setCompletedTasks(progressRes.completed_tasks);
       }
     } catch (err) {
-      setErrorMsg("Failed to generate AI roadmap.");
+      setErrorMsg('Failed to generate AI roadmap. Please try again.');
     } finally {
       setLoading(false);
       setRegenerating(false);
     }
-  };
+  }, [readinessScore, branch]);
 
   useEffect(() => {
     if (effectiveGaps.length > 0 || profile || readinessScore) {
@@ -132,10 +140,13 @@ export const RoadmapView = ({ readinessScore, branch, skillGaps = [], profile, r
         </div>
       </div>
 
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--color-text-muted)' }}>
           <div className="spinner" style={{ width: '32px', height: '32px', border: '3px solid #4F46E5', borderTop: '3px solid transparent', borderRadius: '50%', margin: '0 auto 16px auto', animation: 'spin 1s linear infinite' }} />
-          Generating milestone tasks specifically resolving your skill gaps...
+          {regenerating
+            ? '🤖 Asking the AI to generate a fresh roadmap for your gaps...'
+            : 'Generating milestone tasks specifically resolving your skill gaps...'}
         </div>
       ) : errorMsg ? (
         <div style={{ padding: '16px', background: '#FEE2E2', color: '#DC2626', borderRadius: '12px' }}>{errorMsg}</div>
@@ -191,6 +202,7 @@ export const RoadmapView = ({ readinessScore, branch, skillGaps = [], profile, r
           ))}
         </div>
       )}
+
     </div>
   );
 };
