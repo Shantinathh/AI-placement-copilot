@@ -191,8 +191,11 @@ You need **two terminals** — one for the backend and one for the frontend.
 
 **Terminal 1 — Start the Backend (FastAPI)**
 
+> ⚠️ **Important:** You must run this command from the **project root directory** (e.g., `d:\Student placement predictor`), **NOT** from inside the `backend/` folder. The app uses `backend.` as the package prefix for all imports.
+
 ```bash
-# From the project root directory
+# Make sure you are in the project ROOT directory (where requirements.txt is)
+cd "d:\Student placement predictor"
 python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
