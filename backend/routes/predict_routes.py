@@ -1,4 +1,5 @@
 import os
+import json
 import joblib
 import pandas as pd
 import numpy as np
@@ -7,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from backend.schemas import StudentProfileInput, ReadinessPredictionOutput, FeatureContribution, CategoryImpact
 from backend.auth import get_current_user_optional
 from backend.db import db
+from backend.ml.train_models import build_features
 
 router = APIRouter(prefix="/predict", tags=["Prediction"])
 
@@ -20,12 +22,24 @@ clf = joblib.load(clf_path) if os.path.exists(clf_path) else None
 reg = joblib.load(reg_path) if os.path.exists(reg_path) else None
 preprocessor = joblib.load(prep_path) if os.path.exists(prep_path) else None
 
-# Initialize SHAP TreeExplainer once at startup
+# Load metadata (optimal threshold, feature names, etc.)
+_meta_path = os.path.join(MODEL_DIR, "model_metadata.json")
+_metadata: Dict[str, Any] = {}
+if os.path.exists(_meta_path):
+    with open(_meta_path) as _f:
+        _metadata = json.load(_f)
+
+_OPTIMAL_THRESHOLD: float = _metadata.get("optimal_threshold", 0.5)
+_ALL_FEATURE_NAMES: list = _metadata.get("transformed_feature_names", [])
+
+# SHAP: only supported on raw RandomForest, not CalibratedClassifierCV
 explainer = None
 if clf is not None:
     try:
         import shap
-        explainer = shap.TreeExplainer(clf)
+        # Extract one of the inner estimators for SHAP
+        inner_clf = clf.calibrated_classifiers_[0].estimator
+        explainer = shap.TreeExplainer(inner_clf)
     except Exception as e:
         print(f"Failed to initialize SHAP TreeExplainer: {e}")
 
@@ -56,6 +70,19 @@ FEATURE_CONFIG = {
 
 CATEGORIES = ["Academic Record", "Technical Skills", "Soft Skills", "Industry Exposure"]
 
+@router.get("/profile")
+def get_saved_profile(
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
+    """Return the saved student profile for the logged-in user."""
+    if not current_user or "email" not in current_user:
+        return {"profile": None}
+    doc = db.get_student_profile(current_user["email"])
+    if doc and "profile" in doc:
+        return {"profile": doc["profile"]}
+    return {"profile": None}
+
+
 @router.post("/readiness", response_model=ReadinessPredictionOutput)
 def predict_readiness(
     profile: StudentProfileInput,
@@ -66,18 +93,20 @@ def predict_readiness(
 
     profile_dict = profile.model_dump()
     input_df = pd.DataFrame([profile_dict])
-    
+
+    # Apply same feature engineering used during training
+    input_df = build_features(input_df)
+
     # Preprocess feature vector
     X_trans = preprocessor.transform(input_df)
-    
+
     # Classifier probability of placement
     probs = clf.predict_proba(X_trans)[0]
-    # Class order in RandomForestClassifier classes_ array
     placed_idx = list(clf.classes_).index('Placed') if 'Placed' in clf.classes_ else 1
     prob_placed = float(probs[placed_idx])
-    
+
     readiness_score = round(prob_placed * 100.0, 2)
-    predicted_status = "Placed" if prob_placed >= 0.48 else "Not Placed"
+    predicted_status = "Placed" if prob_placed >= _OPTIMAL_THRESHOLD else "Not Placed"
     
     # Regressor predicted salary
     raw_salary = float(reg.predict(X_trans)[0])
@@ -86,19 +115,25 @@ def predict_readiness(
     else:
         predicted_salary_lpa = round(max(0.0, raw_salary * prob_placed), 2)
         
-    # Feature importances mapping
-    cat_cols = ['gender', 'branch', 'college_tier', 'volunteer_experience']
-    num_cols = [
-        'age', 'cgpa', 'internships_count', 'projects_count', 'certifications_count',
-        'aptitude_score', 'communication_skill_score', 'hackathons_participated',
-        'github_repos', 'linkedin_connections', 'backlogs', 'extracurricular_score',
-        'leadership_score', 'sleep_hours', 'study_hours_per_day'
-    ]
-    
-    cat_feature_names = list(preprocessor.named_transformers_['cat'].get_feature_names_out(cat_cols))
-    all_feature_names = cat_feature_names + num_cols
-    
-    raw_importances = dict(zip(all_feature_names, clf.feature_importances_.tolist()))
+    # Feature importances — average across calibrated estimators
+    all_feature_names = _ALL_FEATURE_NAMES or (
+        list(preprocessor.named_transformers_['cat'].get_feature_names_out(
+            ['gender', 'branch', 'college_tier', 'volunteer_experience']
+        )) + [
+            'age', 'cgpa', 'internships_count', 'projects_count', 'certifications_count',
+            'aptitude_score', 'communication_skill_score', 'hackathons_participated',
+            'github_repos', 'linkedin_connections', 'backlogs', 'extracurricular_score',
+            'leadership_score', 'sleep_hours', 'study_hours_per_day'
+        ]
+    )
+    try:
+        _importances = np.mean(
+            [est.estimator.feature_importances_ for est in clf.calibrated_classifiers_],
+            axis=0
+        )
+    except Exception:
+        _importances = np.zeros(len(all_feature_names))
+    raw_importances = dict(zip(all_feature_names, _importances.tolist()))
     
     # Group feature importances for intuitive visual charts
     grouped_importances = {

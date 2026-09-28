@@ -15,9 +15,10 @@ def generate_roadmap(
     skill_gaps = list(body.skill_gaps) if body.skill_gaps else []
     branch = body.branch or "CSE"
     readiness_score = body.readiness_score if body.readiness_score is not None else 75.0
+    pace = body.pace or "Standard"
 
     # If gaps are empty, attempt to populate from logged-in user's profile and resume
-    if current_user and "email" in current_user:
+    if current_user and isinstance(current_user, dict) and "email" in current_user:
         user_email = current_user["email"]
         profile_doc = db.get_student_profile(user_email)
         resume_doc = db.get_resume_analysis(user_email)
@@ -36,24 +37,29 @@ def generate_roadmap(
         if profile_doc and "prediction" in profile_doc and (body.readiness_score is None or body.readiness_score == 75.0):
             readiness_score = profile_doc["prediction"].get("readiness_score", readiness_score)
 
-    # Check if a saved roadmap already exists and not explicitly forcing regeneration
-    if not body.force_regenerate and current_user and "email" in current_user:
+    # Return cached roadmap only if not force-regenerating and pace matches
+    if not body.force_regenerate and current_user and isinstance(current_user, dict) and "email" in current_user:
         existing = db.get_roadmap(current_user["email"])
-        if existing and "roadmap" in existing and "weeks" in existing["roadmap"]:
-            return RoadmapOutput(**{k: v for k, v in existing["roadmap"].items() if k != "completed_tasks"})
+        if existing and "roadmap" in existing and "tracks" in existing["roadmap"]:
+            cached_pace = existing["roadmap"].get("pace", "Standard")
+            if cached_pace == pace:
+                return RoadmapOutput(**{k: v for k, v in existing["roadmap"].items() if k != "completed_tasks"})
 
     roadmap_data = generate_ai_roadmap(
         readiness_score=readiness_score,
         skill_gaps=skill_gaps,
-        branch=branch
+        branch=branch,
+        pace=pace,
     )
+    roadmap_data["pace"] = pace
 
     output = RoadmapOutput(**roadmap_data)
 
-    if current_user and "email" in current_user:
+    if current_user and isinstance(current_user, dict) and "email" in current_user:
         db.save_roadmap(current_user["email"], output.model_dump())
 
     return output
+
 
 
 @router.get("/progress")
@@ -61,7 +67,7 @@ def get_roadmap_progress(
     current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
 ):
     """Return the persisted completed_tasks map for the current user."""
-    if current_user and "email" in current_user:
+    if current_user and isinstance(current_user, dict) and "email" in current_user:
         doc = db.get_roadmap(current_user["email"])
         if doc and "roadmap" in doc:
             completed_tasks = doc["roadmap"].get("completed_tasks", {})
@@ -75,7 +81,7 @@ def save_roadmap_progress(
     current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
 ):
     """Persist only the completed_tasks — never overwrites the weeks array."""
-    if current_user and "email" in current_user:
+    if current_user and isinstance(current_user, dict) and "email" in current_user:
         completed_tasks = progress_data.get("completed_tasks", {})
         db.save_roadmap_progress(current_user["email"], completed_tasks)
         return {"status": "success", "message": "Progress saved successfully."}

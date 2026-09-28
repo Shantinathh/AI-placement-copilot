@@ -1,0 +1,84 @@
+{
+  "last_trained": "2026-08-26",
+  "dataset": "Student_Dataset.csv",
+  "test_size": 0.2,
+  "random_state": 42,
+  "engineered_features": [
+    "total_activities",
+    "academic_score",
+    "cgpa_sq",
+    "cgpa_per_backlog",
+    "soft_skill_score",
+    "online_presence",
+    "internship_density",
+    "activity_per_year",
+    "aptitude_x_cgpa",
+    "comm_x_leadership",
+    "aptitude_x_comm",
+    "tier_encoded",
+    "tier_x_cgpa"
+  ],
+  "placement_classifier": {
+    "model": "RandomForestClassifier + CalibratedClassifierCV(isotonic, cv=5)",
+    "hyperparameters": {
+      "n_estimators": 300,
+      "max_depth": "None (full trees)",
+      "min_samples_split": 5,
+      "min_samples_leaf": 2,
+      "max_features": "sqrt",
+      "calibration": "isotonic, 5-fold CV"
+    },
+    "training": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    "testing_default_threshold": {
+      "threshold": 0.5,
+      "accuracy": 0.5578,
+      "precision": 0.561,
+      "recall": 0.8652,
+      "f1_score": 0.6806,
+      "roc_auc": 0.5576,
+      "confusion_matrix": [
+        [
+          1732,
+          7376
+        ],
+        [
+          1468,
+          9424
+        ]
+      ]
+    },
+    "testing_optimal_threshold": {
+      "threshold": 0.3718,
+      "accuracy": 0.5454,
+      "precision": 0.545,
+      "recall": 0.9994,
+      "f1_score": 0.7054
+    }
+  },
+  "salary_regressor": {
+    "model": "HistGradientBoostingRegressor",
+    "hyperparameters": {
+      "max_iter": 500,
+      "max_depth": 8,
+      "learning_rate": 0.03,
+      "min_samples_leaf": 30,
+      "l2_regularization": 0.1
+    },
+    "subset": "Placed students only",
+    "training": {
+      "rmse_lpa": 1.209,
+      "mae_lpa": 0.9676,
+      "r2_score": 0.4236
+    },
+    "testing": {
+      "rmse_lpa": 1.234,
+      "mae_lpa": 0.9823,
+      "r2_score": 0.3989
+    }
+  }
+}

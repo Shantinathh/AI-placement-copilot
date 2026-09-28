@@ -10,11 +10,6 @@ export const SkillGapView = ({ profile, resumeAnalysis, onGenerateRoadmap, onNav
   const missingSkillsList = resumeAnalysis?.missing_skills || [];
 
   useEffect(() => {
-    if (!profile && missingSkillsList.length === 0) {
-      setLoading(false);
-      return;
-    }
-
     const fetchGaps = async () => {
       setLoading(true);
       setErrorMsg('');
@@ -23,17 +18,18 @@ export const SkillGapView = ({ profile, resumeAnalysis, onGenerateRoadmap, onNav
           profile: profile || null,
           missing_skills: missingSkillsList,
           extracted_skills: resumeAnalysis?.extracted_skills || [],
-          domain: resumeAnalysis?.domain || "General"
+          domain: resumeAnalysis?.domain || 'General',
         });
         setGaps(res.gaps || []);
-      } catch (err) {
-        setErrorMsg("Failed to load skill gap analysis.");
+      } catch {
+        setErrorMsg('Failed to load skill gap analysis.');
       } finally {
         setLoading(false);
       }
     };
     fetchGaps();
   }, [profile, JSON.stringify(missingSkillsList)]);
+
 
   const getSeverityBadge = (severity) => {
     if (severity === "High") {

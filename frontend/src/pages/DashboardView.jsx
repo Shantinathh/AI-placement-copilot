@@ -62,7 +62,7 @@ export const DashboardView = ({ onNavigate }) => {
   const hasProfile = !!readiness;
   const hasResume = !!ats;
   const hasCompanies = top_companies && top_companies.length > 0;
-  const hasRoadmap = roadmap && roadmap.weeks && roadmap.weeks.length > 0;
+  const hasRoadmap = roadmap && roadmap.tracks && roadmap.tracks.length > 0;
 
   // Empty state card helper
   const EmptyCard = ({ icon, title, desc, action, actionLabel }) => (
@@ -257,13 +257,13 @@ export const DashboardView = ({ onNavigate }) => {
 
           {hasRoadmap ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {roadmap.weeks.slice(0, 2).map((w, idx) => (
+              {roadmap.tracks.slice(0, 2).map((track, idx) => (
                 <div key={idx} style={{ padding: '12px', background: 'var(--badge-indigo-bg)', borderRadius: '10px', border: '1px solid var(--badge-indigo-border)' }}>
                   <div style={{ fontWeight: '700', color: 'var(--badge-indigo-text)', fontSize: '0.9rem', marginBottom: '6px' }}>
-                    {w.title}
+                    🎯 {track.skill}
                   </div>
                   <div style={{ fontSize: '0.825rem', color: 'var(--color-text-body)' }}>
-                    • {w.tasks && w.tasks[0]}
+                    • {track.tasks && track.tasks[0]}
                   </div>
                 </div>
               ))}
@@ -272,7 +272,7 @@ export const DashboardView = ({ onNavigate }) => {
             <EmptyCard
               icon="🗺️"
               title="No Roadmap Generated Yet"
-              desc="Generate a personalized 4-week AI roadmap based on your skill gaps."
+              desc="Generate a personalized AI roadmap based on your skill gaps."
               action={() => onNavigate('skillgap')}
               actionLabel="✨ Generate Roadmap"
             />

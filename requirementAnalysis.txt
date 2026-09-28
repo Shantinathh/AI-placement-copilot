@@ -1,0 +1,44 @@
+3. REQUIREMENT ANALYSIS
+Input Requirements
+
+Student Profile Data: Academic and extracurricular metrics including Branch, CGPA, Aptitude Score, Communication Skill Score, Number of Internships, Projects Count, GitHub Repos, Leadership Score, Active Backlogs, and College Tier.
+Resume Upload: PDF or DOCX files for ATS evaluation and skill extraction.
+User Credentials: Name, Email, and Password for secure account creation and login.
+Customization Parameters: Target job domain (e.g., Software Engineering, Data Science) and learning pace preferences (Relaxed, Standard, Intensive) for roadmap generation.
+Output Requirement
+
+Readiness Prediction: A quantitative readiness score (0-100), predicted placement status (Placed/Not Placed), and estimated salary (LPA).
+Resume Analysis: An ATS compatibility score, a list of extracted skills, and identified missing keywords based on industry standards.
+Skill Gap Analysis: A prioritized list of skill gaps categorized by severity (High, Medium, Low) with actionable improvement tips.
+Company Recommendations: A tailored list of top company matches showing expected packages and match percentages.
+AI-Generated Roadmap: Personalized, actionable learning tracks for each identified skill gap.
+Consolidated Report: A visual dashboard and a downloadable PDF report summarizing all insights.
+Functional Requirement
+
+User Authentication & Authorization: Secure signup, login, and session management to save user progress.
+Machine Learning Inference: Process numerical and categorical profile inputs through trained ML models (e.g., Random Forest) to generate predictions.
+Resume Parsing (NLP): Extract text from uploaded documents and perform keyword matching against industry datasets.
+GenAI Integration: Interface with external LLM APIs (e.g., HuggingFace) to generate dynamic, customized task lists for skill improvement.
+Progress Tracking: Allow users to interact with their roadmaps by checking off completed tasks and updating completion percentages.
+PDF Generation: Dynamically generate downloadable reports combining user data and predictions.
+Nonfunctional Requirement
+
+Performance: API endpoints should respond quickly (under 2 seconds for standard requests) and handle LLM generation gracefully (with loading states and fallbacks).
+Usability: The frontend must provide an intuitive, responsive, and visually engaging UI (e.g., 3D cards, dynamic progress bars) accessible on multiple devices.
+Security: Passwords must be hashed, and API endpoints must be protected using token-based authentication (JWT).
+Reliability & Fault Tolerance: The system must include fallback mechanisms (e.g., structural templates if the AI roadmap generation times out or fails).
+H/W Requirement
+
+Client Side: Any standard device (PC, laptop, smartphone) with an active internet connection.
+Server Side (Deployment):
+CPU: Multi-core processor (4+ cores recommended) for handling concurrent API requests and ML model inference.
+RAM: 8GB or higher to keep ML models (classifiers, regressors, preprocessors) loaded in memory.
+Storage: SSD storage for fast read/write of application files, PDF processing, and database operations.
+S/W Requirement
+
+Frontend: React.js, Vite, and modern CSS for the user interface.
+Backend: Python 3.9+, FastAPI (for high-performance asynchronous endpoints), Uvicorn server.
+Database: MongoDB (for storing user credentials, profiles, resume analysis, and roadmap progress).
+Machine Learning & Data Science: scikit-learn, pandas, numpy, and joblib.
+External APIs: HuggingFace Inference API for generative AI tasks.
+Other Tools: Node.js, Git/GitHub for version control.

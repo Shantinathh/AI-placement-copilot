@@ -50,6 +50,15 @@ export const api = {
     return res.json();
   },
 
+  // 2b. Get saved student profile (for restoring state on reload)
+  getStudentProfile: async () => {
+    const res = await fetch(`${API_BASE_URL}/predict/profile`, {
+      headers: { ...getAuthHeaders() }
+    });
+    if (!res.ok) return null;
+    return res.json();
+  },
+
   // 3. Resume Analysis
   analyzeResume: async (file, domain = "") => {
     const formData = new FormData();
@@ -76,7 +85,7 @@ export const api = {
     }
     const res = await fetch(`${API_BASE_URL}/skills/gap-analysis`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify(payload || {})
     });
     if (!res.ok) {
@@ -104,26 +113,28 @@ export const api = {
   },
 
   // 6. GenAI Roadmap
-  generateRoadmap: async (score, skillGaps, branch, forceRegenerate = false) => {
+  generateRoadmap: async (score, skillGaps, branch, forceRegenerate = false, pace = 'Standard') => {
     const res = await fetch(`${API_BASE_URL}/roadmap/generate`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...getAuthHeaders()
       },
       body: JSON.stringify({
         readiness_score: score || 75.0,
         skill_gaps: skillGaps || [],
-        branch: branch || "CSE",
-        force_regenerate: forceRegenerate
+        branch: branch || 'CSE',
+        force_regenerate: forceRegenerate,
+        pace: pace,
       })
     });
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.detail || "Roadmap generation failed");
+      throw new Error(err.detail || 'Roadmap generation failed');
     }
     return res.json();
   },
+
 
   // 6b. Fetch persisted task completion state
   getRoadmapProgress: async () => {

@@ -1,6 +1,8 @@
 from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Depends
 from backend.schemas import StudentProfileInput, SkillGapOutput, SkillGapItem, SkillGapRequestInput
+from backend.auth import get_current_user_optional
+from backend.db import db
 
 router = APIRouter(prefix="/skills", tags=["Skills"])
 
@@ -189,8 +191,11 @@ def evaluate_resume_gaps(missing_skills: List[str], domain: str = "General") -> 
     return gaps
 
 @router.post("/gap-analysis", response_model=SkillGapOutput)
-def analyze_skill_gaps(payload: Union[SkillGapRequestInput, StudentProfileInput, Dict[str, Any]] = Body(...)):
-    # 1. Parse Profile
+def analyze_skill_gaps(
+    payload: Union[SkillGapRequestInput, StudentProfileInput, Dict[str, Any]] = Body(...),
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+):
+    # 1. Parse Profile from request body
     profile_data = None
     missing_skills: List[str] = []
     domain: str = "General"
@@ -215,17 +220,31 @@ def analyze_skill_gaps(payload: Union[SkillGapRequestInput, StudentProfileInput,
         missing_skills = payload.get("missing_skills", []) or []
         domain = payload.get("domain", "General")
 
+    # 2. If no profile/skills in body, fall back to saved DB data (e.g. after page reload)
+    if profile_data is None and not missing_skills and current_user and "email" in current_user:
+        email = current_user["email"]
+        profile_doc = db.get_student_profile(email)
+        resume_doc = db.get_resume_analysis(email)
+        if profile_doc and "profile" in profile_doc:
+            try:
+                profile_data = StudentProfileInput(**profile_doc["profile"])
+            except Exception:
+                pass
+        if resume_doc and "analysis" in resume_doc:
+            missing_skills = resume_doc["analysis"].get("missing_skills", []) or []
+            domain = resume_doc["analysis"].get("domain", "General")
+
     all_gaps: List[SkillGapItem] = []
     readiness_count = 0
     resume_count = 0
 
-    # 2. Add Profile / Readiness Gaps (e.g. Communication, Aptitude, Projects)
+    # 3. Add Profile / Readiness Gaps (e.g. Communication, Aptitude, Projects)
     if profile_data is not None:
         p_gaps = evaluate_profile_gaps(profile_data)
         all_gaps.extend(p_gaps)
         readiness_count = len(p_gaps)
 
-    # 3. Add Resume Missing Skills Gaps (e.g. Docker, Redis, Kubernetes)
+    # 4. Add Resume Missing Skills Gaps (e.g. Docker, Redis, Kubernetes)
     if missing_skills:
         r_gaps = evaluate_resume_gaps(missing_skills, domain)
         all_gaps.extend(r_gaps)

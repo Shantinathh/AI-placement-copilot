@@ -81,19 +81,26 @@ class CompanyRecommendation(BaseModel):
     category: str = "Tier-2 Tech"
     is_stretch_goal: bool = False
 
-class RoadmapWeekTask(BaseModel):
-    title: str
+class RoadmapConcept(BaseModel):
+    name: str
     tasks: List[str]
 
+class RoadmapSkillTrack(BaseModel):
+    skill: str
+    concepts: List[RoadmapConcept]
+
 class RoadmapRequestInput(BaseModel):
-    readiness_score: float = Field(..., ge=0.0, le=100.0)
-    skill_gaps: List[str]
-    branch: str
+    readiness_score: Optional[float] = Field(default=75.0, ge=0.0, le=100.0)
+    skill_gaps: Optional[List[str]] = Field(default_factory=list)
+    branch: Optional[str] = "CSE"
     weak_areas: Optional[List[str]] = Field(default_factory=list)
     force_regenerate: Optional[bool] = False
+    pace: Optional[str] = "Standard"
 
 class RoadmapOutput(BaseModel):
-    weeks: List[RoadmapWeekTask]
+    tracks: List[RoadmapSkillTrack]
+    pace: Optional[str] = "Standard"
+
 
 class SignupInput(BaseModel):
     name: str = Field(..., min_length=2)

@@ -38,7 +38,7 @@ export function App() {
   const [resumeAnalysisResult, setResumeAnalysisResult] = useState(null);
   const [activeSkillGaps, setActiveSkillGaps] = useState([]);
 
-  // Check stored user on load
+  // Check stored user on load and hydrate data from backend
   useEffect(() => {
     const token = localStorage.getItem("copilot_token");
     const storedUser = localStorage.getItem("copilot_user");
@@ -46,10 +46,27 @@ export function App() {
       try {
         setUser(JSON.parse(storedUser));
       } catch (e) {
-        // Invalid stored user — treat as logged out
         localStorage.removeItem("copilot_token");
         localStorage.removeItem("copilot_user");
+        return;
       }
+      // Restore session data from backend so views work after reload
+      import('./services/api').then(({ api }) => {
+        api.getDashboardSummary().then(res => {
+          if (res.readiness) setPredictionResult(res.readiness);
+          if (res.ats) setResumeAnalysisResult(res.ats);
+        }).catch(() => {});
+
+        // Also fetch the full student profile so branch/college_tier are accurate
+        api.getStudentProfile().then(profileRes => {
+          if (profileRes && profileRes.profile) {
+            setProfileData(profileRes.profile);
+          } else if (profileRes) {
+            setProfileData(profileRes);
+          }
+        }).catch(() => {});
+      });
+
     }
   }, []);
 

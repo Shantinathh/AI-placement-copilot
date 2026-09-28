@@ -59,7 +59,7 @@ def get_dashboard_summary(current_user: Optional[Dict[str, Any]] = Depends(get_c
 
     # 5. Roadmap Data — only from real saved roadmap
     roadmap = None
-    if roadmap_doc and "roadmap" in roadmap_doc and "weeks" in roadmap_doc["roadmap"]:
+    if roadmap_doc and "roadmap" in roadmap_doc and "tracks" in roadmap_doc["roadmap"]:
         roadmap_fields = {k: v for k, v in roadmap_doc["roadmap"].items() if k != "completed_tasks"}
         try:
             roadmap = RoadmapOutput(**roadmap_fields)

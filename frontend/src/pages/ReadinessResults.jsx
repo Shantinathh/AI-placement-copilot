@@ -7,6 +7,25 @@ export const ReadinessResults = ({ prediction, profile, onViewGaps, onViewCompan
   const { readiness_score, predicted_status, predicted_salary_lpa, feature_importances } = prediction;
   const isPlaced = predicted_status === "Placed";
 
+  // Derive skill gaps from profile scores so the roadmap gets pre-populated gaps
+  const deriveSkillGaps = () => {
+    const gaps = [];
+    if (!profile) return gaps;
+    if (profile.communication_skill_score < 75) gaps.push('Communication & Group Discussions');
+    if (profile.aptitude_score < 75) gaps.push('Aptitude & Logical Reasoning');
+    if (profile.internships_count < 2) gaps.push('Internship Experience');
+    if (profile.projects_count < 3 || profile.github_repos < 6) gaps.push('Projects & GitHub Portfolio');
+    if (profile.leadership_score < 65) gaps.push('Leadership & Team Collaboration');
+    if (profile.backlogs > 0) gaps.push('Active Backlogs');
+    if (profile.cgpa < 7.5) gaps.push('Academic CGPA');
+    return gaps;
+  };
+
+  const handleGenerateRoadmap = () => {
+    const gaps = deriveSkillGaps();
+    if (onGenerateRoadmap) onGenerateRoadmap(gaps);
+  };
+
   return (
     <div style={{ maxWidth: '1100px', margin: '36px auto', padding: '0 20px' }}>
       {/* Centered Top Banner */}
@@ -48,6 +67,19 @@ export const ReadinessResults = ({ prediction, profile, onViewGaps, onViewCompan
         <p style={{ maxWidth: '640px', margin: '0 auto', color: 'var(--color-text-body)', fontSize: '0.925rem', lineHeight: '1.6' }}>
           Based on your CGPA ({profile?.cgpa || 8.2}), aptitude score ({profile?.aptitude_score || 80}), and {profile?.projects_count || 4} technical projects evaluated against 100,000 historic campus placement outcomes.
         </p>
+
+        {/* Prominent one-click roadmap CTA for at-risk students */}
+        {!isPlaced && (
+          <div style={{ marginTop: '24px' }}>
+            <button
+              onClick={handleGenerateRoadmap}
+              className="btn-3d-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '14px 28px' }}
+            >
+              ✨ Generate My Personalized Roadmap
+            </button>
+          </div>
+        )}
       </div>
 
       {/* SHAP Explainability Waterfall Section */}
@@ -218,8 +250,8 @@ export const ReadinessResults = ({ prediction, profile, onViewGaps, onViewCompan
                 <span>🏢 Explore Matched Companies</span>
                 <span>→</span>
               </button>
-              <button onClick={onGenerateRoadmap} className="btn-3d-primary" style={{ justifyContent: 'center', padding: '14px 20px' }}>
-                <span>✨ Generate GenAI 4-Week Roadmap</span>
+              <button onClick={handleGenerateRoadmap} className="btn-3d-primary" style={{ justifyContent: 'center', padding: '14px 20px' }}>
+                <span>✨ Generate My Personalized Roadmap</span>
               </button>
             </div>
           </div>
