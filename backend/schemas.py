@@ -1,4 +1,4 @@
-from typing import Literal, List, Dict, Optional, Union
+from typing import Literal, List, Dict, Optional, Union, Any
 from pydantic import BaseModel, Field, EmailStr
 
 class StudentProfileInput(BaseModel):
@@ -10,14 +10,14 @@ class StudentProfileInput(BaseModel):
     internships_count: int = Field(..., ge=0, le=8, description="Internships count (0-8)")
     projects_count: int = Field(..., ge=0, le=13, description="Projects count (0-13)")
     certifications_count: int = Field(..., ge=0, le=11, description="Certifications count (0-11)")
-    aptitude_score: float = Field(..., ge=20.0, le=100.0, description="Aptitude score (20-100)")
+    aptitude_score: Optional[float] = Field(None, ge=20.0, le=100.0, description="Aptitude score (20-100, auto-calculated if omitted)")
     communication_skill_score: float = Field(..., ge=20.0, le=100.0, description="Communication skill score (20-100)")
     hackathons_participated: int = Field(..., ge=0, le=8, description="Hackathons count (0-8)")
     github_repos: int = Field(..., ge=0, le=16, description="GitHub repos (0-16)")
     linkedin_connections: int = Field(..., ge=0, le=100000, description="LinkedIn connections / followers (0-100000)")
     backlogs: int = Field(..., ge=0, le=6, description="Active backlogs (0-6)")
-    extracurricular_score: float = Field(..., ge=0.0, le=100.0, description="Extracurricular score (0-100)")
-    leadership_score: float = Field(..., ge=0.0, le=100.0, description="Leadership score (0-100)")
+    extracurricular_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="Extracurricular score (0-100, auto-calculated if omitted)")
+    leadership_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="Leadership score (0-100, auto-calculated if omitted)")
     volunteer_experience: Literal["Yes", "No"] = Field(..., description="Volunteer experience")
     sleep_hours: float = Field(..., ge=3.0, le=10.0, description="Sleep hours (3-10)")
     study_hours_per_day: float = Field(..., ge=0.5, le=10.0, description="Study hours per day (0.5-10)")
@@ -35,11 +35,11 @@ class CategoryImpact(BaseModel):
 class ReadinessPredictionOutput(BaseModel):
     readiness_score: float = Field(..., ge=0.0, le=100.0)
     predicted_status: Literal["Placed", "Not Placed"]
-    predicted_salary_lpa: float
     feature_importances: Dict[str, float]
     base_value: float = 50.0
     top_contributions: List[FeatureContribution] = Field(default_factory=list)
     category_impacts: List[CategoryImpact] = Field(default_factory=list)
+    calculated_scores: Optional[Dict[str, Any]] = None
 
 class ResumeAnalysisOutput(BaseModel):
     ats_score: float = Field(..., ge=0.0, le=100.0)
@@ -123,3 +123,5 @@ class DashboardSummaryOutput(BaseModel):
     skill_gaps: Optional[List[SkillGapItem]] = None
     top_companies: Optional[List[CompanyRecommendation]] = None
     roadmap: Optional[RoadmapOutput] = None
+    calculated_scores: Optional[Dict[str, Any]] = None
+    profile: Optional[Dict[str, Any]] = None

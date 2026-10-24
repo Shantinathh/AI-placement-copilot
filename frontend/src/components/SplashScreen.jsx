@@ -4,9 +4,9 @@ export const SplashScreen = ({ onFinish }) => {
   const [progress, setProgress] = useState(0);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
-  const TOTAL_DURATION_MS = 8000; // 8 seconds
-  const INTERVAL_MS = 80; // Update every 80ms
-  const INCREMENT = 100 / (TOTAL_DURATION_MS / INTERVAL_MS); // 1% per step
+  const TOTAL_DURATION_MS = 2000; // 2 seconds
+  const INTERVAL_MS = 40; // Update every 40ms
+  const INCREMENT = 100 / (TOTAL_DURATION_MS / INTERVAL_MS); // Smooth step
 
   useEffect(() => {
     const interval = setInterval(() => {

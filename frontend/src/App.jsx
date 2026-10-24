@@ -203,7 +203,12 @@ export function App() {
         )}
 
         {activeScreen === 'dashboard' && (
-          <DashboardView onNavigate={(screen) => setActiveScreen(screen)} />
+          <DashboardView
+            onNavigate={(screen) => setActiveScreen(screen)}
+            profileData={profileData}
+            predictionResult={predictionResult}
+            resumeAnalysisResult={resumeAnalysisResult}
+          />
         )}
       </main>
 

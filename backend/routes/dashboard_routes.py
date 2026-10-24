@@ -66,13 +66,26 @@ def get_dashboard_summary(current_user: Optional[Dict[str, Any]] = Depends(get_c
         except Exception:
             roadmap = None
 
+    # 6. Calculated Scores & Profile Data
+    calculated_scores = None
+    profile_data = None
+    if profile_doc and "profile" in profile_doc:
+        profile_data = profile_doc["profile"]
+        from backend.services.score_calculator import get_score_breakdown
+        try:
+            calculated_scores = get_score_breakdown(profile_data)
+        except Exception:
+            calculated_scores = None
+
     return DashboardSummaryOutput(
         user_name=user_name,
         readiness=readiness,
         ats=ats,
         skill_gaps=skill_gaps,
         top_companies=top_companies,
-        roadmap=roadmap
+        roadmap=roadmap,
+        calculated_scores=calculated_scores,
+        profile=profile_data
     )
 
 @router.get("/report/pdf")
@@ -152,6 +165,31 @@ def download_pdf_report(current_user: Optional[Dict[str, Any]] = Depends(get_cur
             ('BOTTOMPADDING', (0,0), (-1,-1), 5),
         ]))
         story.append(t_shap)
+        story.append(Spacer(1, 12))
+
+    # Section 1b: Calculated Assessment Metrics
+    if summary.calculated_scores:
+        story.append(Paragraph("<b>Calculated Performance Scores (Automated Profiling):</b>", body_style))
+        cs = summary.calculated_scores
+        apt_val = f"{cs.get('aptitude_score', 0)} / 100"
+        lead_val = f"{cs.get('leadership_score', 0)} / 100"
+        extra_val = f"{cs.get('extracurricular_score', 0)} / 100"
+        
+        calc_table_data = [
+            ["Aptitude Score", "Leadership Score", "Extracurricular Score"],
+            [apt_val, lead_val, extra_val]
+        ]
+        t_calc = Table(calc_table_data, colWidths=[180, 180, 180])
+        t_calc.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EFF6FF")),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 8.5),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#CBD5E1")),
+            ('TOPPADDING', (0,0), (-1,-1), 5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ]))
+        story.append(t_calc)
         story.append(Spacer(1, 12))
 
     # Section 2: Resume & Skill Gaps

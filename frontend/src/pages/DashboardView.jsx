@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { ScoreGauge } from '../components/ScoreGauge';
+import { getScoreBreakdown } from '../utils/scoreCalculator';
 
-export const DashboardView = ({ onNavigate }) => {
+export const DashboardView = ({ onNavigate, profileData, predictionResult, resumeAnalysisResult }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState('');
@@ -58,11 +59,20 @@ export const DashboardView = ({ onNavigate }) => {
     );
   }
 
-  const { user_name, readiness, ats, top_companies, roadmap } = data || {};
-  const hasProfile = !!readiness;
+  const activeProfile = data?.profile || profileData;
+  const readiness = data?.readiness || predictionResult;
+  const ats = data?.ats || resumeAnalysisResult;
+  const top_companies = data?.top_companies;
+  const roadmap = data?.roadmap;
+  const user_name = data?.user_name;
+
+  const hasProfile = !!readiness || !!activeProfile;
   const hasResume = !!ats;
   const hasCompanies = top_companies && top_companies.length > 0;
   const hasRoadmap = roadmap && roadmap.tracks && roadmap.tracks.length > 0;
+
+  // Retrieve calculated scores from backend or compute with frontend utility fallback
+  const calculatedInfo = data?.calculated_scores || (activeProfile ? getScoreBreakdown(activeProfile) : null);
 
   // Empty state card helper
   const EmptyCard = ({ icon, title, desc, action, actionLabel }) => (
@@ -94,7 +104,7 @@ export const DashboardView = ({ onNavigate }) => {
           </h2>
           <p style={{ opacity: 0.9, fontSize: '0.95rem' }}>
             {hasProfile
-              ? 'Here is your real-time placement readiness overview, ATS resume status, and company target list.'
+              ? 'Here is your real-time placement readiness overview, calculated performance metrics, ATS resume status, and company target list.'
               : 'Complete your profile to unlock personalized placement insights and recommendations.'}
           </p>
           {pdfError && (
@@ -131,11 +141,11 @@ export const DashboardView = ({ onNavigate }) => {
         )}
       </div>
 
-      {/* Score Gauges — only show when real data exists */}
+      {/* Primary Score Gauges */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '30px' }}>
         {/* Readiness Card */}
         <div className="card-3d" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', minHeight: '160px' }}>
-          {hasProfile ? (
+          {hasProfile && readiness ? (
             <>
               <ScoreGauge score={readiness.readiness_score} title="Placement Readiness" subtitle="ML Model Index" />
               <div>
@@ -188,6 +198,265 @@ export const DashboardView = ({ onNavigate }) => {
             />
           )}
         </div>
+      </div>
+
+      {/* AI-Calculated Performance Dimensions Section */}
+      <div className="card-3d" style={{ marginBottom: '30px', padding: '28px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '22px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '1.4rem' }}>🤖</span>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--color-text-heading)' }}>
+                AI-Calculated Performance Scores
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+              Aptitude, Leadership, and Extracurricular metrics systematically derived from your academic credentials, projects, and activities.
+            </p>
+          </div>
+
+          {hasProfile && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '999px',
+              background: 'var(--badge-indigo-bg)',
+              color: 'var(--badge-indigo-text)',
+              border: '1px solid var(--badge-indigo-border)',
+              fontSize: '0.785rem',
+              fontWeight: '700'
+            }}>
+              <span>⚡</span> Algorithmic Assessment
+            </span>
+          )}
+        </div>
+
+        {hasProfile && calculatedInfo ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            {/* Aptitude Score Card */}
+            <div style={{
+              background: 'var(--color-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--color-border)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.3rem' }}>🧠</span>
+                    <span style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--color-text-heading)' }}>Aptitude Score</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    background: 'rgba(79, 70, 229, 0.12)',
+                    color: '#4F46E5',
+                    border: '1px solid rgba(79, 70, 229, 0.25)'
+                  }}>
+                    {calculatedInfo.breakdown?.aptitude?.level || 'Proficient'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '2.2rem', fontWeight: '800', color: '#4F46E5', lineHeight: 1 }}>
+                    {calculatedInfo.aptitude_score}
+                  </span>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', fontWeight: '600' }}>/ 100</span>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ width: '100%', height: '8px', background: 'var(--color-border)', borderRadius: '999px', overflow: 'hidden', marginBottom: '14px' }}>
+                  <div style={{
+                    width: `${Math.min(100, Math.max(0, calculatedInfo.aptitude_score))}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #4F46E5 0%, #818CF8 100%)',
+                    borderRadius: '999px',
+                    transition: 'width 0.8s ease-in-out'
+                  }} />
+                </div>
+
+                {/* Factors Pills */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                  {(calculatedInfo.breakdown?.aptitude?.factors || []).map((f, i) => (
+                    <span key={i} style={{
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: 'var(--chip-bg)',
+                      color: 'var(--chip-text)',
+                      border: '1px solid var(--color-border)'
+                    }}>
+                      ✓ {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.785rem', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
+                {calculatedInfo.breakdown?.aptitude?.summary || 'Calculated from CGPA, certifications, study hours, and institutional tier.'}
+              </div>
+            </div>
+
+            {/* Leadership Score Card */}
+            <div style={{
+              background: 'var(--color-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--color-border)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.3rem' }}>👥</span>
+                    <span style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--color-text-heading)' }}>Leadership Score</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    background: 'rgba(34, 197, 94, 0.12)',
+                    color: '#16A34A',
+                    border: '1px solid rgba(34, 197, 94, 0.25)'
+                  }}>
+                    {calculatedInfo.breakdown?.leadership?.level || 'Active Contributor'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '2.2rem', fontWeight: '800', color: '#16A34A', lineHeight: 1 }}>
+                    {calculatedInfo.leadership_score}
+                  </span>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', fontWeight: '600' }}>/ 100</span>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ width: '100%', height: '8px', background: 'var(--color-border)', borderRadius: '999px', overflow: 'hidden', marginBottom: '14px' }}>
+                  <div style={{
+                    width: `${Math.min(100, Math.max(0, calculatedInfo.leadership_score))}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #16A34A 0%, #4ADE80 100%)',
+                    borderRadius: '999px',
+                    transition: 'width 0.8s ease-in-out'
+                  }} />
+                </div>
+
+                {/* Factors Pills */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                  {(calculatedInfo.breakdown?.leadership?.factors || []).map((f, i) => (
+                    <span key={i} style={{
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: 'var(--chip-bg)',
+                      color: 'var(--chip-text)',
+                      border: '1px solid var(--color-border)'
+                    }}>
+                      ✓ {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.785rem', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
+                {calculatedInfo.breakdown?.leadership?.summary || 'Calculated from hackathons, project execution, volunteer experience, and soft skills.'}
+              </div>
+            </div>
+
+            {/* Extracurricular Score Card */}
+            <div style={{
+              background: 'var(--color-bg)',
+              borderRadius: '16px',
+              border: '1px solid var(--color-border)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.3rem' }}>🏆</span>
+                    <span style={{ fontWeight: '800', fontSize: '1rem', color: 'var(--color-text-heading)' }}>Extracurricular Score</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    color: '#D97706',
+                    border: '1px solid rgba(245, 158, 11, 0.25)'
+                  }}>
+                    {calculatedInfo.breakdown?.extracurricular?.level || 'Moderate Involvement'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '2.2rem', fontWeight: '800', color: '#D97706', lineHeight: 1 }}>
+                    {calculatedInfo.extracurricular_score}
+                  </span>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', fontWeight: '600' }}>/ 100</span>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ width: '100%', height: '8px', background: 'var(--color-border)', borderRadius: '999px', overflow: 'hidden', marginBottom: '14px' }}>
+                  <div style={{
+                    width: `${Math.min(100, Math.max(0, calculatedInfo.extracurricular_score))}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #D97706 0%, #FBBF24 100%)',
+                    borderRadius: '999px',
+                    transition: 'width 0.8s ease-in-out'
+                  }} />
+                </div>
+
+                {/* Factors Pills */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                  {(calculatedInfo.breakdown?.extracurricular?.factors || []).map((f, i) => (
+                    <span key={i} style={{
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: 'var(--chip-bg)',
+                      color: 'var(--chip-text)',
+                      border: '1px solid var(--color-border)'
+                    }}>
+                      ✓ {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.785rem', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
+                {calculatedInfo.breakdown?.extracurricular?.summary || 'Calculated from volunteer work, open-source portfolio, and professional networking.'}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <EmptyCard
+            icon="🧮"
+            title="No Calculated Assessment Scores Yet"
+            desc="Submit your student profile once to automatically evaluate your Aptitude, Leadership, and Extracurricular metrics."
+            action={() => onNavigate('profile')}
+            actionLabel="🚀 Evaluate Profile"
+          />
+        )}
       </div>
 
       {/* Companies + Roadmap Grid */}

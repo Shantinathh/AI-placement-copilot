@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
+import { calculateDerivedScores } from '../utils/scoreCalculator';
 
 export const ProfileForm = ({ onSubmitSuccess }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // 19 Profile fields matching Pydantic ranges & defaults
+  // 16 Profile fields (Aptitude, Leadership, Extracurricular are auto-derived by AI)
   const [formData, setFormData] = useState({
     age: 21,
     gender: 'Male',
@@ -16,14 +17,11 @@ export const ProfileForm = ({ onSubmitSuccess }) => {
     internships_count: 2,
     projects_count: 4,
     certifications_count: 3,
-    aptitude_score: 80.0,
     communication_skill_score: 85.0,
     hackathons_participated: 2,
     github_repos: 8,
     linkedin_connections: 450,
     backlogs: 0,
-    extracurricular_score: 70.0,
-    leadership_score: 75.0,
     volunteer_experience: 'Yes',
     sleep_hours: 7.0,
     study_hours_per_day: 5.0
@@ -47,6 +45,7 @@ export const ProfileForm = ({ onSubmitSuccess }) => {
     setLoading(true);
 
     try {
+      const derived = calculateDerivedScores(formData);
       const payload = {
         age: parseInt(formData.age, 10),
         gender: formData.gender,
@@ -56,14 +55,14 @@ export const ProfileForm = ({ onSubmitSuccess }) => {
         internships_count: parseInt(formData.internships_count, 10),
         projects_count: parseInt(formData.projects_count, 10),
         certifications_count: parseInt(formData.certifications_count, 10),
-        aptitude_score: parseFloat(formData.aptitude_score),
+        aptitude_score: derived.aptitude_score,
         communication_skill_score: parseFloat(formData.communication_skill_score),
         hackathons_participated: parseInt(formData.hackathons_participated, 10),
         github_repos: parseInt(formData.github_repos, 10),
         linkedin_connections: parseInt(formData.linkedin_connections, 10) || 0,
         backlogs: parseInt(formData.backlogs, 10),
-        extracurricular_score: parseFloat(formData.extracurricular_score),
-        leadership_score: parseFloat(formData.leadership_score),
+        extracurricular_score: derived.extracurricular_score,
+        leadership_score: derived.leadership_score,
         volunteer_experience: formData.volunteer_experience,
         sleep_hours: parseFloat(formData.sleep_hours),
         study_hours_per_day: parseFloat(formData.study_hours_per_day)
@@ -281,25 +280,42 @@ export const ProfileForm = ({ onSubmitSuccess }) => {
 
           {/* STEP 2: Technical Skills & Projects */}
           {step === 2 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
-              <StepperInput label="Internships Count" field="internships_count" minVal={0} maxVal={8} />
-              <StepperInput label="Projects Completed" field="projects_count" minVal={0} maxVal={13} />
-              <StepperInput label="Certifications Count" field="certifications_count" minVal={0} maxVal={11} />
-              <StepperInput label="Hackathons Participated" field="hackathons_participated" minVal={0} maxVal={8} />
-              <StepperInput label="GitHub Repositories" field="github_repos" minVal={0} maxVal={16} />
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
+                <StepperInput label="Internships Count" field="internships_count" minVal={0} maxVal={8} />
+                <StepperInput label="Projects Completed" field="projects_count" minVal={0} maxVal={13} />
+                <StepperInput label="Certifications Count" field="certifications_count" minVal={0} maxVal={11} />
+                <StepperInput label="Hackathons Participated" field="hackathons_participated" minVal={0} maxVal={8} />
+                <StepperInput label="GitHub Repositories" field="github_repos" minVal={0} maxVal={16} />
+                <SliderInput label="Communication Skill Score" field="communication_skill_score" minVal="20" maxVal="100" unit="/ 100" />
+              </div>
 
-              <SliderInput label="Aptitude Score" field="aptitude_score" minVal="20" maxVal="100" unit="/ 100" />
-              <SliderInput label="Communication Skill Score" field="communication_skill_score" minVal="20" maxVal="100" unit="/ 100" />
+              <div style={{
+                marginTop: '24px',
+                padding: '12px 16px',
+                background: 'var(--badge-indigo-bg)',
+                borderRadius: '12px',
+                border: '1px solid var(--badge-indigo-border)',
+                color: 'var(--badge-indigo-text)',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '1.2rem' }}>🤖</span>
+                <span>
+                  <strong>Automated Aptitude Evaluation:</strong> Your Aptitude Score is automatically calculated from your CGPA, study hours, verified certifications, and institutional benchmark.
+                </span>
+              </div>
             </div>
           )}
 
           {/* STEP 3: Habits & Personality */}
           {step === 3 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
-              <SliderInput label="Daily Study Hours" field="study_hours_per_day" minVal="0.5" maxVal="10.0" step="0.5" unit="hrs" />
-              <SliderInput label="Daily Sleep Hours" field="sleep_hours" minVal="3.0" maxVal="10.0" step="0.5" unit="hrs" />
-              <SliderInput label="Leadership Score" field="leadership_score" minVal="0" maxVal="100" unit="/ 100" />
-              <SliderInput label="Extracurricular Score" field="extracurricular_score" minVal="0" maxVal="100" unit="/ 100" />
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
+                <SliderInput label="Daily Study Hours" field="study_hours_per_day" minVal="0.5" maxVal="10.0" step="0.5" unit="hrs" />
+                <SliderInput label="Daily Sleep Hours" field="sleep_hours" minVal="3.0" maxVal="10.0" step="0.5" unit="hrs" />
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '700', color: 'var(--color-text-body)', marginBottom: '8px' }}>
@@ -360,6 +376,25 @@ export const ProfileForm = ({ onSubmitSuccess }) => {
                 </select>
               </div>
             </div>
+
+            <div style={{
+              marginTop: '24px',
+              padding: '12px 16px',
+              background: 'var(--badge-indigo-bg)',
+              borderRadius: '12px',
+              border: '1px solid var(--badge-indigo-border)',
+              color: 'var(--badge-indigo-text)',
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '1.2rem' }}>🤝</span>
+              <span>
+                <strong>Automated Leadership & Extracurricular Evaluation:</strong> Leadership and Extracurricular scores are derived objectively from your hackathons, open-source portfolio, volunteerism, and soft skills.
+              </span>
+            </div>
+          </div>
           )}
 
           {/* Action Buttons */}

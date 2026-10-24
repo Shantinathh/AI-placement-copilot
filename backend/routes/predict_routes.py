@@ -9,6 +9,7 @@ from backend.schemas import StudentProfileInput, ReadinessPredictionOutput, Feat
 from backend.auth import get_current_user_optional
 from backend.db import db
 from backend.ml.train_models import build_features
+from backend.services.score_calculator import calculate_derived_scores, get_score_breakdown
 
 router = APIRouter(prefix="/predict", tags=["Prediction"])
 
@@ -32,16 +33,19 @@ if os.path.exists(_meta_path):
 _OPTIMAL_THRESHOLD: float = _metadata.get("optimal_threshold", 0.5)
 _ALL_FEATURE_NAMES: list = _metadata.get("transformed_feature_names", [])
 
-# SHAP: only supported on raw RandomForest, not CalibratedClassifierCV
-explainer = None
-if clf is not None:
-    try:
-        import shap
-        # Extract one of the inner estimators for SHAP
-        inner_clf = clf.calibrated_classifiers_[0].estimator
-        explainer = shap.TreeExplainer(inner_clf)
-    except Exception as e:
-        print(f"Failed to initialize SHAP TreeExplainer: {e}")
+# SHAP: lazily loaded to avoid Windows multiprocessing spawn overhead during module load
+_explainer = None
+
+def get_explainer():
+    global _explainer
+    if _explainer is None and clf is not None:
+        try:
+            import shap
+            inner_clf = clf.calibrated_classifiers_[0].estimator
+            _explainer = shap.TreeExplainer(inner_clf)
+        except Exception as e:
+            print(f"Failed to initialize SHAP TreeExplainer: {e}")
+    return _explainer
 
 FEATURE_CONFIG = {
     'cgpa': {'name': 'CGPA', 'category': 'Academic Record'},
@@ -92,6 +96,18 @@ def predict_readiness(
         raise HTTPException(status_code=500, detail="ML models not trained yet. Run backend/ml/train_models.py")
 
     profile_dict = profile.model_dump()
+
+    # Automatically derive aptitude, leadership, and extracurricular scores if omitted or None
+    derived_scores = calculate_derived_scores(profile_dict)
+    if profile_dict.get("aptitude_score") is None:
+        profile_dict["aptitude_score"] = derived_scores["aptitude_score"]
+    if profile_dict.get("leadership_score") is None:
+        profile_dict["leadership_score"] = derived_scores["leadership_score"]
+    if profile_dict.get("extracurricular_score") is None:
+        profile_dict["extracurricular_score"] = derived_scores["extracurricular_score"]
+
+    score_breakdown = get_score_breakdown(profile_dict)
+
     input_df = pd.DataFrame([profile_dict])
 
     # Apply same feature engineering used during training
@@ -149,6 +165,7 @@ def predict_readiness(
     top_contributions = []
     category_impacts = []
 
+    explainer = get_explainer()
     if explainer is not None:
         try:
             shap_vals = explainer.shap_values(X_trans)
@@ -217,7 +234,8 @@ def predict_readiness(
         feature_importances=grouped_importances,
         base_value=base_value,
         top_contributions=top_contributions,
-        category_impacts=category_impacts
+        category_impacts=category_impacts,
+        calculated_scores=score_breakdown
     )
     
     if current_user and isinstance(current_user, dict) and "email" in current_user:
